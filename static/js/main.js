@@ -255,6 +255,7 @@ textInput.addEventListener('input', updateButtons);
 
 // Generate Logic
 generateBtn.addEventListener('click', async () => {
+    console.log("Generate button clicked!");
     const text = document.getElementById('textInput').value;
 
     // If we have text, use Client-Side Rendering
