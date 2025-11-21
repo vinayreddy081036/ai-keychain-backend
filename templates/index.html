@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Keychain Creator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-display {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .drop-zone {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%23CBD5E1FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            border: none;
+        }
+
+        .drop-zone.drag-over {
+            background-color: #eff6ff;
+            background-image: url("data:image/svg+xml,%3csvg width='100%25' height='100%25' xmlns='http://www.w3.org/2000/svg'%3e%3crect width='100%25' height='100%25' fill='none' rx='16' ry='16' stroke='%234F46E5FF' stroke-width='2' stroke-dasharray='12%2c 12' stroke-dashoffset='0' stroke-linecap='square'/%3e%3c/svg%3e");
+            transform: scale(1.01);
+        }
+
+        /* Custom Range Slider */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 16px;
+            width: 16px;
+            border-radius: 50%;
+            background: #4f46e5;
+            cursor: pointer;
+            margin-top: -6px;
+            box-shadow: 0 2px 6px rgba(79, 70, 229, 0.4);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #e2e8f0;
+            border-radius: 2px;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .viewer-gradient {
+            background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+        }
+    </style>
+</head>
+
+<body class="bg-slate-50 min-h-screen flex flex-col text-slate-800">
+
+    <!-- Header -->
+    <header class="glass-panel sticky top-0 z-50 border-b border-slate-200/50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                    <i data-lucide="box" class="w-6 h-6"></i>
+                </div>
+                <span
+                    class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 font-display">AI
+                    Keychain Creator</span>
+            </div>
+            <div class="flex items-center gap-4">
+                <span class="text-xs font-medium px-2 py-1 bg-slate-100 rounded-md text-slate-500">v1.2.0</span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 h-[calc(100vh-8rem)]">
+
+            <!-- Left Panel: Controls -->
+            <div class="lg:col-span-5 space-y-6 overflow-y-auto pr-2 pb-20 custom-scrollbar">
+
+                <!-- Upload Box -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 font-display">
+                        <div class="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                            <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                        </div>
+                        Upload Image
+                    </h2>
+                    <div id="dropZone" class="drop-zone rounded-2xl p-8 text-center cursor-pointer group">
+                        <input type="file" id="fileInput" class="hidden" accept="image/png, image/jpeg">
+                        <div id="uploadPrompt" class="group-hover:scale-105 transition-transform duration-300">
+                            <div
+                                class="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-100 transition-colors">
+                                <i data-lucide="image-plus" class="w-8 h-8 text-blue-500"></i>
+                            </div>
+                            <p class="text-slate-700 font-semibold">Click or drag image here</p>
+                            <p class="text-xs text-slate-400 mt-1">PNG, JPG up to 10MB</p>
+                        </div>
+                        <div id="filePreview" class="hidden flex flex-col items-center">
+                            <div class="relative group">
+                                <img id="previewImg" src=""
+                                    class="h-32 object-contain mb-3 rounded-lg shadow-md bg-white p-2">
+                                <button id="removeFile"
+                                    class="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center shadow-md hover:bg-red-600 transition-colors">
+                                    <i data-lucide="x" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                            <p id="fileName" class="text-sm font-medium text-slate-700 truncate max-w-[200px]"></p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Configuration -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center gap-2 font-display">
+                        <div class="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
+                            <i data-lucide="settings-2" class="w-4 h-4"></i>
+                        </div>
+                        Configuration
+                    </h2>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Name
+                                / Text</label>
+                            <input type="text" id="textInput" placeholder="e.g. 'Alice'"
+                                class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all font-medium">
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Shape
+                                Style</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <button
+                                    class="shape-btn active px-4 py-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/50 text-indigo-700 font-semibold text-sm transition-all flex items-center justify-center gap-2"
+                                    data-shape="cutout">
+                                    <i data-lucide="scissors" class="w-4 h-4"></i> Cutout
+                                </button>
+                                <button
+                                    class="shape-btn px-4 py-3 rounded-xl border border-slate-200 hover:border-slate-300 text-slate-600 font-medium text-sm transition-all flex items-center justify-center gap-2"
+                                    data-shape="circle">
+                                    <i data-lucide="circle" class="w-4 h-4"></i> Circle Tag
+                                </button>
+                            </div>
+                        </div>
+
+                        <div
+                            class="flex items-center justify-between p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-100">
+                            <div class="flex items-center gap-3">
+                                <div class="p-2 bg-white shadow-sm text-purple-600 rounded-lg">
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </div>
+                                <div>
+                                    <p class="font-semibold text-slate-900">AI Enhancement</p>
+                                    <p class="text-xs text-slate-500">Smart optimization</p>
+                                </div>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="aiToggle" class="sr-only peer">
+                                <div
+                                    class="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-purple-300/50 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600 shadow-inner">
+                                </div>
+                            </label>
+                        </div>
+
+                        <!-- API Key Input -->
+                        <div id="apiKeyContainer" class="hidden transition-all">
+                            <label
+                                class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">OpenAI
+                                API Key</label>
+                            <div class="relative">
+                                <i data-lucide="key" class="absolute left-3 top-2.5 w-4 h-4 text-slate-400"></i>
+                                <input type="password" id="apiKeyInput" placeholder="sk-..."
+                                    class="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none transition-all text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advanced Settings -->
+                <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+                    <button id="advancedToggle" class="w-full flex items-center justify-between text-left group">
+                        <h2
+                            class="text-lg font-semibold flex items-center gap-2 font-display group-hover:text-indigo-600 transition-colors">
+                            <div
+                                class="p-1.5 bg-slate-100 text-slate-600 rounded-lg group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                                <i data-lucide="sliders-horizontal" class="w-4 h-4"></i>
+                            </div>
+                            Advanced Settings
+                        </h2>
+                        <div class="p-1 rounded-full hover:bg-slate-100 transition-colors">
+                            <i data-lucide="chevron-down"
+                                class="w-5 h-5 text-slate-400 transition-transform duration-300" id="advancedIcon"></i>
+                        </div>
+                    </button>
+
+                    <div id="advancedPanel" class="hidden pt-6 space-y-6 border-t border-slate-100 mt-4">
+                        <!-- Font Selection -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Font
+                                Style</label>
+                            <div class="relative">
+                                <select id="fontSelect"
+                                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-medium">
+                                    <option value="lobster">Lobster (Thick Cursive)</option>
+                                    <option value="pacifico">Pacifico (Bubble Cursive)</option>
+                                    <option value="greatvibes">Great Vibes (Elegant)</option>
+                                    <option value="allura">Allura (Script)</option>
+                                    <option value="alexbrush">Alex Brush (Brush)</option>
+                                    <option value="dancingscript">Dancing Script (Friendly)</option>
+                                    <option value="satisfy">Satisfy (Classic)</option>
+                                    <option value="baloo2">Baloo 2 (Bold Rounded)</option>
+                                    <option value="fredoka">Fredoka One (Bubbly)</option>
+                                    <option value="sans">Roboto (Bold Sans)</option>
+                                    <option value="serif">Playfair (Serif)</option>
+                                </select>
+                                <i data-lucide="chevron-down"
+                                    class="absolute right-4 top-3 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            </div>
+                        </div>
+
+                        <!-- Sliders Group -->
+                        <div class="space-y-5">
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-xs font-medium text-slate-600">Text Height</label>
+                                        <span id="textThicknessVal"
+                                            class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">3.0</span>
+                                    </div>
+                                    <input type="range" id="textThickness" min="1" max="10" step="0.5" value="3">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-xs font-medium text-slate-600">Base Height</label>
+                                        <span id="baseThicknessVal"
+                                            class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">2.0</span>
+                                    </div>
+                                    <input type="range" id="baseThickness" min="1" max="10" step="0.5" value="2">
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-6">
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-xs font-medium text-slate-600">Text Width</label>
+                                        <span id="textDilationVal"
+                                            class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">0.0</span>
+                                    </div>
+                                    <input type="range" id="textDilation" min="0" max="2" step="0.1" value="0">
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-2">
+                                        <label class="text-xs font-medium text-slate-600">Base Padding</label>
+                                        <span id="basePaddingVal"
+                                            class="text-xs font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">5</span>
+                                    </div>
+                                    <input type="range" id="basePadding" min="1" max="30" step="1" value="5">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Colors -->
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Text
+                                    Color</label>
+                                <div class="flex items-center gap-2 p-1 border border-slate-200 rounded-lg">
+                                    <input type="color" id="textColor" value="#ffd700"
+                                        class="h-8 w-full rounded cursor-pointer border-none p-0">
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Base
+                                    Color</label>
+                                <div class="flex items-center gap-2 p-1 border border-slate-200 rounded-lg">
+                                    <input type="color" id="baseColor" value="#1e293b"
+                                        class="h-8 w-full rounded cursor-pointer border-none p-0">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Outline Type -->
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Background
+                                Shape</label>
+                            <div class="grid grid-cols-3 gap-2 bg-slate-50 p-1 rounded-xl border border-slate-200">
+                                <button
+                                    class="outline-btn active px-3 py-2 rounded-lg bg-white text-indigo-600 shadow-sm text-xs font-bold transition-all"
+                                    data-outline="bubble">Bubble</button>
+                                <button
+                                    class="outline-btn px-3 py-2 rounded-lg text-slate-500 hover:text-slate-700 text-xs font-medium transition-all"
+                                    data-outline="rect">Rectangle</button>
+                                <button
+                                    class="outline-btn px-3 py-2 rounded-lg text-slate-500 hover:text-slate-700 text-xs font-medium transition-all"
+                                    data-outline="none">None</button>
+                            </div>
+                        </div>
+
+                        <!-- Hole Position -->
+                        <div>
+                            <label
+                                class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Keyring
+                                Hole</label>
+                            <div class="relative">
+                                <select id="holeSelect"
+                                    class="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500 outline-none appearance-none font-medium text-sm">
+                                    <option value="top">Top Center</option>
+                                    <option value="left">Left Side</option>
+                                    <option value="right">Right Side</option>
+                                    <option value="custom">Custom Offset</option>
+                                    <option value="none">No Hole</option>
+                                </select>
+                                <i data-lucide="chevron-down"
+                                    class="absolute right-4 top-3 w-4 h-4 text-slate-400 pointer-events-none"></i>
+                            </div>
+
+                            <!-- Hole Offsets -->
+                            <div id="holeOffsets"
+                                class="hidden grid grid-cols-2 gap-2 mt-2 animate-in slide-in-from-top duration-200">
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">X Offset (mm)</label>
+                                    <input type="number" id="holeX" value="0" step="0.5"
+                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-medium text-slate-500 mb-1">Y Offset (mm)</label>
+                                    <input type="number" id="holeY" value="0" step="0.5"
+                                        class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                                </div>
+                            </div>
+
+                            <!-- Hole Size -->
+                            <div class="mt-3">
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-xs font-medium text-slate-500">Hole Size (mm)</label>
+                                    <span id="holeRadiusVal" class="text-xs font-bold text-indigo-600">3.0</span>
+                                </div>
+                                <input type="range" id="holeRadius" min="1.0" max="10.0" step="0.5" value="3.0"
+                                    class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-indigo-600">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Prompt -->
+                <div id="aiPromptContainer"
+                    class="hidden mt-4 bg-gradient-to-br from-purple-50 to-white rounded-2xl p-6 border border-purple-100 shadow-sm">
+                    <label class="block text-sm font-bold text-purple-900 mb-2 flex items-center gap-2">
+                        <i data-lucide="sparkles" class="w-4 h-4 text-purple-600"></i> AI Instructions
+                    </label>
+                    <textarea id="aiPrompt" rows="2" placeholder="e.g., Make it thick and sturdy with a bubbly font..."
+                        class="w-full px-4 py-3 rounded-xl border border-purple-200 focus:ring-2 focus:ring-purple-500 outline-none text-sm bg-white/50"></textarea>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="grid grid-cols-2 gap-4 sticky bottom-0 bg-slate-50 pt-4 pb-2 z-10">
+                    <button id="previewBtn" disabled
+                        class="py-3.5 bg-white text-slate-700 border border-slate-200 rounded-xl font-bold text-sm shadow-sm hover:bg-slate-50 hover:border-slate-300 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="eye" class="w-4 h-4"></i> Preview 2D
+                    </button>
+
+                    <button id="generateBtn" disabled
+                        class="py-3.5 bg-indigo-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 hover:shadow-indigo-600/40 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 transform active:scale-95">
+                        <i data-lucide="box" class="w-4 h-4"></i> Generate 3D
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: 3D Preview -->
+            <div
+                class="lg:col-span-7 bg-slate-900 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col border border-slate-800">
+                <div
+                    class="absolute top-6 left-6 z-10 bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full text-xs font-medium text-white flex items-center gap-2 border border-white/10">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(34,197,94,0.5)]">
+                    </div>
+                    Live Preview
+                </div>
+
+                <div id="viewerContainer"
+                    class="flex-1 w-full h-full viewer-gradient flex items-center justify-center relative">
+                    <div id="placeholder" class="text-center p-8">
+                        <div
+                            class="w-24 h-24 bg-slate-800/50 rounded-full flex items-center justify-center mx-auto mb-6 backdrop-blur-sm border border-slate-700">
+                            <i data-lucide="box" class="w-10 h-10 text-slate-500"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-200 mb-2 font-display">Ready to Create</h3>
+                        <p class="text-slate-400">Upload an image or enter text to<br>generate your 3D keychain</p>
+                    </div>
+                </div>
+
+                <!-- Floating Download Bar -->
+                <div id="downloadBar"
+                    class="hidden absolute bottom-6 left-6 right-6 glass-panel p-4 rounded-2xl flex items-center justify-between shadow-2xl animate-in slide-in-from-bottom-4 duration-500">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center">
+                            <i data-lucide="check" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <p class="font-bold text-slate-900 text-sm">Model Ready!</p>
+                            <p class="text-xs text-slate-500">keychain.stl</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <button id="openChatBtn"
+                                class="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 text-sm font-medium">
+                                <i data-lucide="message-square-plus" class="w-4 h-4"></i>
+                                AI Assistant
+                            </button>
+                            <div class="text-right hidden sm:block">
+                                <p class="text-xs text-slate-500 font-medium">Version 1.2.0</p>
+                                <p class="text-[10px] text-slate-400">Powered by Gemini</p>
+                            </div>
+                        </div>
+                    </div>
+                    <a id="downloadLink" href="#"
+                        class="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-medium text-sm transition-all flex items-center gap-2 shadow-lg">
+                        <i data-lucide="download" class="w-4 h-4"></i> Download
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay"
+        class="fixed inset-0 bg-white/90 backdrop-blur-md z-[100] hidden flex items-center justify-center">
+        <div class="text-center">
+            <div class="relative w-20 h-20 mx-auto mb-6">
+                <div class="absolute inset-0 border-4 border-indigo-100 rounded-full"></div>
+                <div class="absolute inset-0 border-4 border-indigo-600 rounded-full border-t-transparent animate-spin">
+                </div>
+                <i data-lucide="box" class="absolute inset-0 m-auto w-8 h-8 text-indigo-600 animate-pulse"></i>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-900 mb-2 font-display">Generating Model...</h3>
+            <p class="text-slate-500" id="loadingText">Processing geometry</p>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <!-- AI Chat Modal -->
+    <div id="aiChatModal"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-2xl shadow-2xl w-full max-w-md h-[600px] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+            <!-- Header -->
+            <div class="p-4 border-b border-slate-100 flex justify-between items-center bg-indigo-600 text-white">
+                <div class="flex items-center gap-2">
+                    <div class="p-1.5 bg-white/20 rounded-lg">
+                        <i data-lucide="bot" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-sm">AI Design Assistant</h3>
+                        <p class="text-xs text-indigo-100">I can help you design your keychain</p>
+                    </div>
+                </div>
+                <button id="closeChatBtn" class="p-1 hover:bg-white/20 rounded-lg transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Chat History -->
+            <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+                <!-- Messages will appear here -->
+                <div class="flex gap-3">
+                    <div
+                        class="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-indigo-600">
+                        <i data-lucide="bot" class="w-4 h-4"></i>
+                    </div>
+                    <div
+                        class="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 text-sm text-slate-600">
+                        Hi! I'm your AI design assistant. Tell me what kind of keychain you want to make, and I'll help
+                        you get the details right.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 bg-white border-t border-slate-100">
+                <div class="flex gap-2">
+                    <input type="text" id="chatInput" placeholder="Type your message..."
+                        class="flex-1 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                    <button id="sendChatBtn"
+                        class="p-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-200">
+                        <i data-lucide="send" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js & Helpers -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+
+</html>
