@@ -365,7 +365,9 @@ baseColorInput.addEventListener('input', () => {
 });
 
 function loadSTL(url) {
+    console.log("Loading STL from URL:", url);
     if (!scene) {
+        console.log("Initializing viewer...");
         initViewer();
         viewerContainer.appendChild(renderer.domElement);
         placeholder.classList.add('hidden');
@@ -379,6 +381,7 @@ function loadSTL(url) {
 
     const loader = new STLLoader();
     loader.load(url, (geometry) => {
+        console.log("STL Loaded. Vertices:", geometry.attributes.position.count);
         geometry.computeVertexNormals();
         const material = new THREE.MeshPhysicalMaterial({
             color: 0x60a5fa, metalness: 0.2, roughness: 0.3
@@ -388,7 +391,15 @@ function loadSTL(url) {
         mesh.rotation.x = -Math.PI / 2;
         scene.add(mesh);
         fitCamera([mesh]);
-    });
+        console.log("Mesh added to scene.");
+    },
+        (xhr) => {
+            console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+        },
+        (error) => {
+            console.error("Error loading STL:", error);
+            alert("Error displaying model: " + error.message);
+        });
 }
 
 function fitCamera(objects) {
