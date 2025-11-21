@@ -86,42 +86,48 @@ export class ClientRenderer {
         baseBrush.updateMatrixWorld();
 
         // 3. Handle Hole & Tab
-        // if (holePosition !== 'none') {
-        //     let tabBrush;
-        //     let holeBrush;
+        if (holePosition !== 'none') {
+            let tabBrush;
+            let holeBrush;
 
-        //     // Calculate positions
-        //     let hx = 0;
-        //     let hy = 0;
+            // Calculate positions
+            let hx = 0;
+            let hy = 0;
 
-        //     if (holePosition === 'top') {
-        //         hy = (height / 2) + holeRadius; 
-        //         // Tab
-        //         const tabGeo = new THREE.CylinderGeometry(holeRadius + 3, holeRadius + 3, baseThickness, 32);
-        //         tabGeo.rotateX(Math.PI / 2);
-        //         tabGeo.translate(0, hy, baseThickness / 2);
-        //         tabBrush = new Brush(tabGeo);
-        //         tabBrush.updateMatrixWorld();
+            if (holePosition === 'top') {
+                hy = (height / 2) + holeRadius;
+                // Tab
+                const tabGeo = new THREE.CylinderGeometry(holeRadius + 3, holeRadius + 3, baseThickness, 32);
+                tabGeo.rotateX(Math.PI / 2);
+                tabGeo.translate(0, hy, baseThickness / 2);
+                tabBrush = new Brush(tabGeo);
+                tabBrush.updateMatrixWorld();
 
-        //         // Hole
-        //         const holeGeo = new THREE.CylinderGeometry(holeRadius, holeRadius, baseThickness * 2, 32);
-        //         holeGeo.rotateX(Math.PI / 2);
-        //         holeGeo.translate(0, hy, baseThickness / 2);
-        //         holeBrush = new Brush(holeGeo);
-        //         holeBrush.updateMatrixWorld();
-        //     } 
-        //     // Add other positions (left/right) logic here if needed, defaulting to top for now if not custom
+                // Hole
+                const holeGeo = new THREE.CylinderGeometry(holeRadius, holeRadius, baseThickness * 2, 32);
+                holeGeo.rotateX(Math.PI / 2);
+                holeGeo.translate(0, hy, baseThickness / 2);
+                holeBrush = new Brush(holeGeo);
+                holeBrush.updateMatrixWorld();
+            }
+            // Add other positions (left/right) logic here if needed, defaulting to top for now if not custom
 
-        //     if (tabBrush) {
-        //         // Union Tab to Base
-        //         baseBrush = this.evaluator.evaluate(baseBrush, tabBrush, ADDITION);
-        //     }
+            if (tabBrush) {
+                console.log("Performing CSG Union (Tab)...");
+                // Union Tab to Base
+                baseBrush = this.evaluator.evaluate(baseBrush, tabBrush, ADDITION);
+                baseBrush.updateMatrixWorld();
+                console.log("Union result vertices:", baseBrush.geometry.attributes.position.count);
+            }
 
-        //     if (holeBrush) {
-        //         // Subtract Hole from Base
-        //         baseBrush = this.evaluator.evaluate(baseBrush, holeBrush, SUBTRACTION);
-        //     }
-        // }
+            if (holeBrush) {
+                console.log("Performing CSG Subtraction (Hole)...");
+                // Subtract Hole from Base
+                baseBrush = this.evaluator.evaluate(baseBrush, holeBrush, SUBTRACTION);
+                baseBrush.updateMatrixWorld();
+                console.log("Subtraction result vertices:", baseBrush.geometry.attributes.position.count);
+            }
+        }
 
         // 4. Export
         const group = new THREE.Group();
