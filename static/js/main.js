@@ -260,6 +260,24 @@ generateBtn.addEventListener('click', async () => {
 
     // If we have text, use Client-Side Rendering
     if (text && !currentFileId) {
+        console.log("Debug: Attempting to show Red Cube...");
+
+        // DEBUG: Force Viewer Init
+        if (!scene) {
+            initViewer();
+            viewerContainer.appendChild(renderer.domElement);
+            placeholder.classList.add('hidden');
+            animate();
+        }
+
+        // Add a Red Cube
+        const geometry = new THREE.BoxGeometry(20, 20, 20);
+        const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+        fitCamera([cube]);
+        console.log("Debug: Red Cube added.");
+
         loadingOverlay.classList.remove('hidden');
         document.getElementById('loadingText').textContent = "Generating in Browser...";
 
