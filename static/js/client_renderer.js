@@ -85,6 +85,35 @@ export class ClientRenderer {
         let baseBrush = new Brush(baseGeo);
         baseBrush.updateMatrixWorld();
 
+        // 3. Handle Hole (Loop)
+        if (holePosition !== 'none') {
+            // We use a Torus (Donut) to create a loop, avoiding complex CSG operations
+            // This is more robust for client-side rendering
+
+            let loopGeo;
+            let lx = 0;
+            let ly = 0;
+
+            // Torus parameters: radius, tube, radialSegments, tubularSegments
+            const loopRadius = holeRadius + 1.5; // Radius of the ring
+            const tubeRadius = baseThickness / 2; // Thickness of the ring wire
+
+            if (holePosition === 'top') {
+                ly = (height / 2) + loopRadius - (tubeRadius / 2); // Position at top edge
+
+                loopGeo = new THREE.TorusGeometry(loopRadius, tubeRadius, 16, 32);
+                // Torus is in XY plane.
+
+                loopGeo.translate(0, ly, baseThickness / 2);
+            }
+            // Add other positions if needed
+
+            if (loopGeo) {
+                const loopMesh = new THREE.Mesh(loopGeo, new THREE.MeshStandardMaterial());
+                group.add(loopMesh);
+            }
+        }
+
         // 4. Export
         const group = new THREE.Group();
         group.add(textMesh);
