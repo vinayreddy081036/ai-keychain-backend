@@ -1,9 +1,10 @@
 import * as THREE from 'three';
+import { Brush, Evaluator, SUBTRACTION, ADDITION } from 'three-bvh-csg'; // Keeping for reference if needed, but unused now.
+// Actually, let's remove it to be clean.
 import { TTFLoader } from 'three/addons/loaders/TTFLoader.js';
 import { FontLoader } from 'three/addons/loaders/FontLoader.js';
 import { TextGeometry } from 'three/addons/geometries/TextGeometry.js';
 import { STLExporter } from 'three/addons/exporters/STLExporter.js';
-import { Brush, Evaluator, SUBTRACTION, ADDITION } from 'three-bvh-csg';
 
 // Cache loaded fonts
 const fontCache = {};
@@ -12,7 +13,6 @@ export class ClientRenderer {
     constructor() {
         this.loader = new TTFLoader();
         this.exporter = new STLExporter();
-        this.evaluator = new Evaluator();
     }
 
     async loadFont(fontName) {
@@ -42,7 +42,7 @@ export class ClientRenderer {
     }
 
     async generateKeychain(params) {
-        console.log("Starting Client-Side Generation...", params);
+        console.log("Starting Client-Side Generation (No CSG)...", params);
         const {
             text,
             fontName = 'sans',
@@ -87,12 +87,14 @@ export class ClientRenderer {
 
         if (outlineType === 'rect') {
             baseGeo = new THREE.BoxGeometry(width, height, baseThickness);
+            // BoxGeometry is centered in Z, move it up
+            baseGeo.translate(0, 0, baseThickness / 2);
         } else {
-            // Bubble (Rounded Rect) - default
+            // Bubble (Rounded Rect)
             const shape = new THREE.Shape();
             const x = -width / 2;
             const y = -height / 2;
-            const radius = 5; // Fixed radius for "bubble" look
+            const radius = 5;
 
             shape.moveTo(x + radius, y);
             shape.lineTo(x + width - radius, y);
@@ -108,23 +110,17 @@ export class ClientRenderer {
                 depth: baseThickness,
                 bevelEnabled: false
             });
+            // ExtrudeGeometry is 0 to depth in Z. No translate needed for Z.
         }
 
-        // Center base (ExtrudeGeometry creates it at 0,0 but extruded in Z)
-        // BoxGeometry is centered. Extrude isn't necessarily if we drew it centered.
-        // We drew it from -w/2 to w/2, so it is centered in XY.
-        // But Extrude goes from Z=0 to Z=depth.
-        // We want it from Z=0 to Z=baseThickness. That matches.
-
-        // If BoxGeometry, it centers in Z too, so we need to move it up by thickness/2.
-        if (outlineType === 'rect') {
-            baseGeo.translate(0, 0, baseThickness / 2);
-        }
-
-        let baseBrush = new Brush(baseGeo);
-        baseBrush.updateMatrixWorld();
+        const baseMesh = new THREE.Mesh(baseGeo, new THREE.MeshStandardMaterial());
+        baseMesh.updateMatrixWorld();
 
         // 3. Handle Hole (Loop)
+        const group = new THREE.Group();
+        group.add(textMesh);
+        group.add(baseMesh);
+
         if (holePosition !== 'none') {
             let loopGeo;
             let lx = 0;
@@ -155,12 +151,6 @@ export class ClientRenderer {
         }
 
         // 4. Export
-        const group = new THREE.Group();
-        group.add(textMesh);
-
-        const baseMesh = new THREE.Mesh(baseBrush.geometry, new THREE.MeshStandardMaterial());
-        group.add(baseMesh);
-
         const stlString = this.exporter.parse(group, { binary: true });
         const blob = new Blob([stlString], { type: 'application/octet-stream' });
         return URL.createObjectURL(blob);
