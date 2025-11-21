@@ -385,12 +385,22 @@ function loadSTL(url) {
         console.log("STL Loaded. Vertices:", geometry.attributes.position.count);
         geometry.computeVertexNormals();
         const material = new THREE.MeshPhysicalMaterial({
-            color: 0x60a5fa, metalness: 0.2, roughness: 0.3
+            color: 0x60a5fa, metalness: 0.2, roughness: 0.3, side: THREE.DoubleSide
         });
         mesh = new THREE.Mesh(geometry, material);
+
+        // Center geometry
         geometry.center();
+
+        // Rotate to stand up
         mesh.rotation.x = -Math.PI / 2;
+
         scene.add(mesh);
+
+        // Add helpers to verify scene is rendering
+        const axesHelper = new THREE.AxesHelper(50);
+        scene.add(axesHelper);
+
         fitCamera([mesh]);
         console.log("Mesh added to scene.");
     },
@@ -406,6 +416,13 @@ function loadSTL(url) {
 function fitCamera(objects) {
     const box = new THREE.Box3();
     objects.forEach(obj => box.expandByObject(obj));
+
+    if (box.isEmpty()) {
+        console.warn("Bounding box empty, using default view.");
+        camera.position.set(0, 50, 50);
+        camera.lookAt(0, 0, 0);
+        return;
+    }
 
     const size = box.getSize(new THREE.Vector3()).length();
     const center = box.getCenter(new THREE.Vector3());

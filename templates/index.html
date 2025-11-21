@@ -530,7 +530,10 @@
     </div>
 
     <!-- Main Script (Module) -->
-    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script type="module"
+        src="{{ url_for('static', filename='js/client_renderer.js') }}?v={{ range(1, 10000) | random }}"></script>
+    <script type="module"
+        src="{{ url_for('static', filename='js/main.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script>
         lucide.createIcons();
     </script>
