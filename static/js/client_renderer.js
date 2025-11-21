@@ -50,7 +50,10 @@ export class ClientRenderer {
             baseThickness = 2,
             basePadding = 5,
             holeRadius = 3,
-            holePosition = 'top'
+            holePosition = 'top',
+            outlineType = 'bubble',
+            holeX = 0,
+            holeY = 0
         } = params;
 
         const font = await this.loadFont(fontName);
@@ -66,6 +69,7 @@ export class ClientRenderer {
 
         textGeo.computeBoundingBox();
         const textCenter = textGeo.boundingBox.getCenter(new THREE.Vector3());
+        const textSize = textGeo.boundingBox.getSize(new THREE.Vector3());
 
         // Center text
         textGeo.translate(-textCenter.x, -textCenter.y, 0);
@@ -75,38 +79,74 @@ export class ClientRenderer {
         textMesh.updateMatrixWorld();
 
         // 2. Create Base Geometry
-        const bbox = textGeo.boundingBox;
-        const width = (bbox.max.x - bbox.min.x) + (basePadding * 2);
-        const height = (bbox.max.y - bbox.min.y) + (basePadding * 2);
+        // Calculate dimensions
+        const width = textSize.x + (basePadding * 2);
+        const height = textSize.y + (basePadding * 2);
 
-        const baseGeo = new THREE.BoxGeometry(width, height, baseThickness);
-        baseGeo.translate(0, 0, baseThickness / 2);
+        let baseGeo;
+
+        if (outlineType === 'rect') {
+            baseGeo = new THREE.BoxGeometry(width, height, baseThickness);
+        } else {
+            // Bubble (Rounded Rect) - default
+            const shape = new THREE.Shape();
+            const x = -width / 2;
+            const y = -height / 2;
+            const radius = 5; // Fixed radius for "bubble" look
+
+            shape.moveTo(x + radius, y);
+            shape.lineTo(x + width - radius, y);
+            shape.quadraticCurveTo(x + width, y, x + width, y + radius);
+            shape.lineTo(x + width, y + height - radius);
+            shape.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+            shape.lineTo(x + radius, y + height);
+            shape.quadraticCurveTo(x, y + height, x, y + height - radius);
+            shape.lineTo(x, y + radius);
+            shape.quadraticCurveTo(x, y, x + radius, y);
+
+            baseGeo = new THREE.ExtrudeGeometry(shape, {
+                depth: baseThickness,
+                bevelEnabled: false
+            });
+        }
+
+        // Center base (ExtrudeGeometry creates it at 0,0 but extruded in Z)
+        // BoxGeometry is centered. Extrude isn't necessarily if we drew it centered.
+        // We drew it from -w/2 to w/2, so it is centered in XY.
+        // But Extrude goes from Z=0 to Z=depth.
+        // We want it from Z=0 to Z=baseThickness. That matches.
+
+        // If BoxGeometry, it centers in Z too, so we need to move it up by thickness/2.
+        if (outlineType === 'rect') {
+            baseGeo.translate(0, 0, baseThickness / 2);
+        }
 
         let baseBrush = new Brush(baseGeo);
         baseBrush.updateMatrixWorld();
 
         // 3. Handle Hole (Loop)
         if (holePosition !== 'none') {
-            // We use a Torus (Donut) to create a loop, avoiding complex CSG operations
-            // This is more robust for client-side rendering
-
             let loopGeo;
             let lx = 0;
             let ly = 0;
 
-            // Torus parameters: radius, tube, radialSegments, tubularSegments
-            const loopRadius = holeRadius + 1.5; // Radius of the ring
-            const tubeRadius = baseThickness / 2; // Thickness of the ring wire
+            // Torus parameters
+            const loopRadius = holeRadius + 1.5;
+            const tubeRadius = baseThickness / 2;
 
             if (holePosition === 'top') {
-                ly = (height / 2) + loopRadius - (tubeRadius / 2); // Position at top edge
-
-                loopGeo = new THREE.TorusGeometry(loopRadius, tubeRadius, 16, 32);
-                // Torus is in XY plane.
-
-                loopGeo.translate(0, ly, baseThickness / 2);
+                ly = (height / 2) + loopRadius - (tubeRadius / 2);
+            } else if (holePosition === 'left') {
+                lx = -(width / 2) - loopRadius + (tubeRadius / 2);
+            } else if (holePosition === 'right') {
+                lx = (width / 2) + loopRadius - (tubeRadius / 2);
+            } else if (holePosition === 'custom') {
+                lx = holeX;
+                ly = holeY;
             }
-            // Add other positions if needed
+
+            loopGeo = new THREE.TorusGeometry(loopRadius, tubeRadius, 16, 32);
+            loopGeo.translate(lx, ly, baseThickness / 2);
 
             if (loopGeo) {
                 const loopMesh = new THREE.Mesh(loopGeo, new THREE.MeshStandardMaterial());

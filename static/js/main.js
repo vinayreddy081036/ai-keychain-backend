@@ -270,7 +270,11 @@ generateBtn.addEventListener('click', async () => {
                 baseThickness: parseFloat(baseThickness.value),
                 basePadding: parseFloat(basePadding.value),
                 holeRadius: parseFloat(holeRadius.value),
-                holePosition: holeSelect.value
+                holePosition: holeSelect.value,
+                outlineType: document.querySelector('.outline-btn.active').dataset.outline,
+                holeX: parseFloat(document.getElementById('holeX').value),
+                holeY: parseFloat(document.getElementById('holeY').value),
+                textDilation: parseFloat(textDilation.value)
             };
 
             const stlUrl = await clientRenderer.generateKeychain(params);
